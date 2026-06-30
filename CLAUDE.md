@@ -21,13 +21,14 @@ Chi tiết: mục 1.1 trong tài liệu thiết kế.
 
 ## Kiến trúc (6 khối độc lập)
 
-Luồng: `inbox/ → INGEST → CLASSIFY → KNOWLEDGE BASE → TUTOR (Telegram) → [Phase 3] ADAPTIVE`
+Luồng: `inbox/ → INGEST → CLASSIFY → SYNTHESIZE → KNOWLEDGE BASE → TUTOR (Telegram) → [Phase 3] ADAPTIVE`
 
 | Khối | Thư mục | Nhiệm vụ |
 |---|---|---|
 | **Ingest** | `src/ai_tutor/ingest/` | Xử lý file theo loại: ảnh→**OCR cục bộ trước, Claude vision chỉ khi kém**, pdf/docx→text (Python), video→`ffmpeg`+**faster-whisper** (cục bộ), text→thẳng. Idempotent (hash chống trùng), lỗi đẩy vào `inbox/_failed/` không chặn file khác. |
 | **Classify** | `src/ai_tutor/classify/` | **Heuristic Python trước** (tên file/thư mục/từ khóa chương-bài); **chỉ gọi Claude (Haiku, structured output, gộp batch) khi không chắc**. Gắn `lop/mon/chuong/bai/ky_nang`. |
-| **Knowledge Base** | `src/ai_tutor/kb/` + `kb/` | Lưu bài theo **chương/bài/kỹ năng** (KHÔNG theo ngày): markdown + `meta.json`, chỉ mục trong SQLite. Phase 2 thêm ChromaDB. |
+| **Synthesize** | `src/ai_tutor/synthesize/` | Tổng hợp tài liệu 1 bài → `lesson.md` có cấu trúc (lý thuyết/công thức/ví dụ/lỗi thường gặp). Gọi Claude **1 lần/bài**, **cache theo `source_hash`** (chỉ làm lại khi nguồn đổi). Vừa là "ghi chú bài học", vừa tiết kiệm token về sau (amortize). |
+| **Knowledge Base** | `src/ai_tutor/kb/` + `kb/` | Lưu bài theo **chương/bài/kỹ năng** (KHÔNG theo ngày): `lesson.md` (đã tổng hợp) + `meta.json`, chỉ mục trong SQLite. Phase 2 thêm ChromaDB. |
 | **Tutor** | `src/ai_tutor/tutor/` | Telegram bot. Truy hồi nội dung KB → Claude trả lời với system prompt ràng buộc "chỉ dùng tài liệu cô; không có thì nói chưa có". Phân biệt 2 bạn qua Telegram user ID. Ghi `qa_log`. |
 | **Adaptive** *(Phase 3)* | `src/ai_tutor/adaptive/` | Ghi câu sai → sinh bài luyện → spaced repetition (kiểu SM-2) → báo cáo phụ huynh. |
 | **Auto-collect** *(Phase 4)* | — | Google Drive sync, import Zalo export. |
@@ -38,9 +39,9 @@ Luồng: `inbox/ → INGEST → CLASSIFY → KNOWLEDGE BASE → TUTOR (Telegram)
 
 ```
 kb/<mon>/lop<n>/chuong-XX-.../bai-YY-.../
-    lesson.md     # nội dung bài đã chuẩn hóa
-    meta.json     # {mon, lop, chuong, bai, ky_nang[], nguon[]}
-    sources/      # file gốc + transcript
+    lesson.md     # BẢN TỔNG HỢP kiến thức do Synthesize tạo (template cố định)
+    meta.json     # {mon, lop, chuong, bai, ky_nang[], nguon[], source_hash}
+    sources/      # file gốc + transcript thô (giữ để đối chiếu)
 ```
 SQLite (trong `data/`) giữ dữ liệu động/chỉ mục: `documents, lessons, skills, students, qa_log, mistakes, reviews`.
 
@@ -85,8 +86,8 @@ Mỗi processor/classifier/retriever test riêng bằng dữ liệu mẫu nhỏ 
 ## Lộ trình (đang ở Phase 0)
 
 0. Khung repo, config, schema SQLite, client Claude, bot Telegram "echo".
-1. **MVP:** Ingest + Classify + KB markdown + Tutor trả lời theo bài (chưa vector). ← *mục tiêu chạy thật đầu tiên*
-2. RAG: embeddings + ChromaDB.
+1. **MVP:** Ingest + Classify + **Synthesize (tổng hợp theo bài)** + KB markdown + Tutor trả lời theo bài (chưa vector). ← *mục tiêu chạy thật đầu tiên*
+2. RAG: embeddings + ChromaDB; tổng hợp **theo chủ đề** (sinh theo yêu cầu).
 3. Adaptive: spaced repetition + báo cáo phụ huynh.
 4. Auto-collect: Google Drive + Zalo export.
 
