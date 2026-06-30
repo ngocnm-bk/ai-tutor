@@ -31,6 +31,9 @@ def test_ingest_stores_documents_and_isolates_errors(tmp_path):
     assert "bài 5" in rows[0]["extracted_text"]
     assert not (cfg.inbox_dir / "b.png").exists()           # đã move
     assert (cfg.failed_dir / "b.png").exists()
+    # File đã nạp được GIỮ LẠI (chuyển sang _processed), không bị xóa
+    assert not (cfg.inbox_dir / "a.txt").exists()
+    assert (cfg.processed_dir / "a.txt").exists()
 
 
 def test_ingest_skips_duplicate_hash(tmp_path):

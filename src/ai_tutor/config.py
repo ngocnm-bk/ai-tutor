@@ -13,6 +13,7 @@ class Config:
     root: Path
     inbox_dir: Path
     failed_dir: Path
+    processed_dir: Path
     kb_dir: Path
     data_dir: Path
     db_path: Path
@@ -30,9 +31,10 @@ def load_config(root: Path | None = None, env: Mapping[str, str] | None = None) 
 
     inbox_dir = root / "inbox"
     failed_dir = inbox_dir / "_failed"
+    processed_dir = inbox_dir / "_processed"
     kb_dir = root / "kb"
     data_dir = root / "data"
-    for d in (inbox_dir, failed_dir, kb_dir, data_dir):
+    for d in (inbox_dir, failed_dir, processed_dir, kb_dir, data_dir):
         d.mkdir(parents=True, exist_ok=True)
 
     return Config(
@@ -41,6 +43,7 @@ def load_config(root: Path | None = None, env: Mapping[str, str] | None = None) 
         root=root,
         inbox_dir=inbox_dir,
         failed_dir=failed_dir,
+        processed_dir=processed_dir,
         kb_dir=kb_dir,
         data_dir=data_dir,
         db_path=data_dir / "ai_tutor.db",

@@ -23,7 +23,7 @@ class IngestReport:
 
 def _iter_inbox(cfg: Config):
     for p in sorted(cfg.inbox_dir.iterdir()):
-        if p.is_dir() or p.name.startswith(".") or p.name == "_failed":
+        if p.is_dir() or p.name.startswith(".") or p.name in ("_failed", "_processed"):
             continue
         yield p
 
@@ -53,7 +53,8 @@ def ingest_once(cfg: Config, conn: sqlite3.Connection, *,
                 (content_hash, str(path), ftype, "ingested", text),
             )
             conn.commit()
-            path.unlink()
+            # Giữ bản gốc: chuyển sang _processed thay vì xóa (Phase 1B sẽ archive vào kb/sources).
+            shutil.move(str(path), str(cfg.processed_dir / path.name))
             report.ingested += 1
         except Exception as exc:  # cô lập lỗi: không chặn file khác
             report.failed += 1

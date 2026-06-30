@@ -10,9 +10,11 @@ def test_load_config_builds_paths_and_dirs(tmp_path: Path):
     assert cfg.telegram_bot_token == "t"
     assert cfg.inbox_dir == tmp_path / "inbox"
     assert cfg.failed_dir == tmp_path / "inbox" / "_failed"
+    assert cfg.processed_dir == tmp_path / "inbox" / "_processed"
     assert cfg.db_path == tmp_path / "data" / "ai_tutor.db"
     assert cfg.inbox_dir.is_dir()
     assert cfg.failed_dir.is_dir()
+    assert cfg.processed_dir.is_dir()
     assert cfg.kb_dir.is_dir()
     assert cfg.data_dir.is_dir()
 
