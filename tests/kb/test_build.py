@@ -42,4 +42,5 @@ def test_build_kb_skips_already_classified(tmp_path):
     build_kb(cfg, conn, FakeClaude())
     report2 = build_kb(cfg, conn, FakeClaude())  # không còn document 'ingested'
     assert report2.classified == 0
+    assert report2.lessons_touched == 0
     assert report2.synthesized == 0
