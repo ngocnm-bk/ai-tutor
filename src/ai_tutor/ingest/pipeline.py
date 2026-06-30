@@ -47,14 +47,16 @@ def ingest_once(cfg: Config, conn: sqlite3.Connection, *,
                 raise ValueError(f"Không có extractor cho loại '{ftype}'")
 
             text = extractor(path)
+            # Giữ bản gốc: chuyển sang _processed thay vì xóa (Phase 1B sẽ archive vào kb/sources).
+            # source_path ghi đích _processed để Phase 1B đọc đúng vị trí file sau khi move.
+            dest = cfg.processed_dir / path.name
             conn.execute(
                 "INSERT INTO documents(content_hash, source_path, file_type, status, extracted_text) "
                 "VALUES (?,?,?,?,?)",
-                (content_hash, str(path), ftype, "ingested", text),
+                (content_hash, str(dest), ftype, "ingested", text),
             )
             conn.commit()
-            # Giữ bản gốc: chuyển sang _processed thay vì xóa (Phase 1B sẽ archive vào kb/sources).
-            shutil.move(str(path), str(cfg.processed_dir / path.name))
+            shutil.move(str(path), str(dest))
             report.ingested += 1
         except Exception as exc:  # cô lập lỗi: không chặn file khác
             report.failed += 1

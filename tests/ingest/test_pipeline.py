@@ -26,7 +26,10 @@ def test_ingest_stores_documents_and_isolates_errors(tmp_path):
 
     assert report.ingested == 1
     assert report.failed == 1
-    rows = conn.execute("SELECT file_type, extracted_text FROM documents").fetchall()
+    assert report.failed_files == ["b.png"]
+    rows = conn.execute("SELECT file_type, extracted_text, source_path FROM documents").fetchall()
+    # source_path trỏ vào _processed (vị trí thật sau move), không phải inbox gốc
+    assert rows[0]["source_path"] == str(cfg.processed_dir / "a.txt")
     assert rows[0]["file_type"] == "text"
     assert "bài 5" in rows[0]["extracted_text"]
     assert not (cfg.inbox_dir / "b.png").exists()           # đã move
