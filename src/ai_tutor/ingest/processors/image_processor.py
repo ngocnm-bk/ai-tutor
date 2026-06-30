@@ -15,8 +15,8 @@ def extract_text(path: Path, *, ocr: Callable[[Path], str],
 def default_ocr(path: Path) -> str:
     import pytesseract
     from PIL import Image
-    img = Image.open(path)
-    try:
-        return pytesseract.image_to_string(img, lang="vie+eng")
-    except pytesseract.TesseractError:
-        return pytesseract.image_to_string(img)
+    with Image.open(path) as img:
+        try:
+            return pytesseract.image_to_string(img, lang="vie+eng")
+        except pytesseract.TesseractError:
+            return pytesseract.image_to_string(img)

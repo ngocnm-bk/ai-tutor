@@ -8,8 +8,8 @@ def extract_text(path: Path, *, transcribe: Callable[[Path], str]) -> str:
     return (transcribe(path) or "").strip()
 
 
-def default_transcribe(path: Path, *, model_size: str = "small") -> str:
+def default_transcribe(path: Path, *, model_size: str = "small", language: str = "vi") -> str:
     from faster_whisper import WhisperModel
     model = WhisperModel(model_size)
-    segments, _ = model.transcribe(str(path), language="vi")
+    segments, _ = model.transcribe(str(path), language=language)
     return " ".join(seg.text.strip() for seg in segments)
