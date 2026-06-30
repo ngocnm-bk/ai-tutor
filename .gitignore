@@ -3,8 +3,9 @@
 *.egg-info/
 __pycache__/
 *.pyc
-data/
-inbox/*
-!inbox/.gitkeep
-kb/
+# Neo về gốc repo: chỉ ignore thư mục runtime ở gốc, KHÔNG ignore src/ai_tutor/kb/ hay tests/kb/
+/data/
+/inbox/*
+!/inbox/.gitkeep
+/kb/
 .pytest_cache/
