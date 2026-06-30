@@ -14,7 +14,7 @@ dependencies = [
 [project.optional-dependencies]
 # Gói xử lý media nặng — chỉ cần khi xử lý ảnh/video THẬT. Test inject fake nên không cần.
 media = ["pytesseract>=0.3.10", "Pillow>=10", "faster-whisper>=1.0"]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "reportlab>=4"]
 
 [build-system]
 requires = ["setuptools>=68"]
