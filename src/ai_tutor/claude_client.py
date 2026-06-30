@@ -23,3 +23,22 @@ class ClaudeClient:
             messages=[{"role": "user", "content": user}],
         )
         return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+
+    def complete_json(self, system: str, user: str, *, tool_name: str,
+                      tool_schema: dict, smart: bool = False,
+                      max_tokens: int = 512) -> dict:
+        model = self._smart_model if smart else self._cheap_model
+        resp = self._client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            tools=[{"name": tool_name,
+                    "description": "Trả kết quả theo schema.",
+                    "input_schema": tool_schema}],
+            tool_choice={"type": "tool", "name": tool_name},
+        )
+        for b in resp.content:
+            if getattr(b, "type", None) == "tool_use":
+                return b.input
+        return {}

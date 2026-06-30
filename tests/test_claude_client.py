@@ -41,3 +41,22 @@ def test_from_config_forwards_api_key():
         client = ClaudeClient.from_config(cfg)
     MockAnthropic.assert_called_once_with(api_key="secret")
     assert isinstance(client, ClaudeClient)
+
+
+def test_complete_json_returns_tool_input_and_forces_tool():
+    class FakeMsgs:
+        def __init__(self): self.last = None
+        def create(self, **kw):
+            self.last = kw
+            return SimpleNamespace(content=[SimpleNamespace(type="tool_use", input={"lop": 3, "mon": "toan"})])
+    class Fake:
+        def __init__(self): self.messages = FakeMsgs()
+    fake = Fake()
+    client = ClaudeClient(fake)
+    schema = {"type": "object", "properties": {"lop": {"type": "integer"}}}
+    out = client.complete_json(system="s", user="u", tool_name="classify", tool_schema=schema)
+    assert out == {"lop": 3, "mon": "toan"}
+    assert fake.messages.last["tool_choice"] == {"type": "tool", "name": "classify"}
+    assert fake.messages.last["tools"][0]["name"] == "classify"
+    assert fake.messages.last["tools"][0]["input_schema"] == schema
+    assert fake.messages.last["model"] == "claude-haiku-4-5-20251001"  # cheap by default
