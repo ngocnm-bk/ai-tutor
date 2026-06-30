@@ -107,13 +107,12 @@ dependencies = [
     "anthropic>=0.40",
     "pypdf>=4",
     "python-docx>=1.1",
-    "pytesseract>=0.3.10",
-    "Pillow>=10",
-    "faster-whisper>=1.0",
     "python-dotenv>=1",
 ]
 
 [project.optional-dependencies]
+# Gói xử lý media nặng — chỉ cần khi xử lý ảnh/video THẬT. Test inject fake nên không cần.
+media = ["pytesseract>=0.3.10", "Pillow>=10", "faster-whisper>=1.0"]
 dev = ["pytest>=8"]
 
 [build-system]
@@ -971,7 +970,7 @@ def default_ocr(path: Path) -> str:
         return pytesseract.image_to_string(img)
 ```
 
-> Ghi chú: `vision` thật được tạo ở Task 12 từ `ClaudeClient` (gửi ảnh base64 + prompt "Trích toàn bộ chữ/đề bài trong ảnh, chỉ trả text"). Ở plan này chỉ cần interface; ràng buộc token: chỉ gọi khi OCR kém.
+> Ghi chú: `default_ocr` import `pytesseract`/`PIL` **lazy** (trong hàm) nên test (inject fake) không cần cài `[media]`. `vision` thật được tạo ở Task 12 từ `ClaudeClient`. Ràng buộc token: chỉ gọi khi OCR kém.
 
 - [ ] **Step 4: Chạy PASS**
 
@@ -995,7 +994,7 @@ git commit -m "feat(ingest): image processor — OCR cục bộ trước, vision
 **Interfaces:**
 - Produces:
   - `extract_text(path: Path, *, transcribe: Callable[[Path], str]) -> str` — gọi `transcribe(path)`, `strip()`. (Tách audio + chạy Whisper nằm trong `transcribe` thật để test không cần ffmpeg.)
-  - `default_transcribe(path: Path, *, model_size: str = "small") -> str` — dùng `faster_whisper.WhisperModel(model_size)`, `transcribe(str(path))`, nối các segment.text. faster-whisper tự đọc audio từ file media qua ffmpeg.
+  - `default_transcribe(path: Path, *, model_size: str = "small") -> str` — import `faster_whisper` **lazy** (trong hàm); dùng `WhisperModel(model_size)`, `transcribe(str(path))`, nối các segment.text. faster-whisper tự đọc audio từ file media qua ffmpeg. (Cần cài `[media]` + ffmpeg khi chạy thật; test inject fake nên không cần.)
 
 - [ ] **Step 1: Viết test thất bại (inject fake transcribe)**
 
