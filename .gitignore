@@ -1,9 +1,10 @@
 .venv/
 .env
+*.egg-info/
 __pycache__/
 *.pyc
 data/
-inbox/
+inbox/*
 !inbox/.gitkeep
 kb/
 .pytest_cache/
