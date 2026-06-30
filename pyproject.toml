@@ -1,0 +1,28 @@
+[project]
+name = "ai-tutor"
+version = "0.1.0"
+description = "AI Tutor cá nhân/gia đình (Telegram + Claude, local-first)"
+requires-python = ">=3.11"
+dependencies = [
+    "python-telegram-bot>=21",
+    "anthropic>=0.40",
+    "pypdf>=4",
+    "python-docx>=1.1",
+    "python-dotenv>=1",
+]
+
+[project.optional-dependencies]
+# Gói xử lý media nặng — chỉ cần khi xử lý ảnh/video THẬT. Test inject fake nên không cần.
+media = ["pytesseract>=0.3.10", "Pillow>=10", "faster-whisper>=1.0"]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
