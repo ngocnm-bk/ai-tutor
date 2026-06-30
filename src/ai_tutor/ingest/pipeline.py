@@ -28,6 +28,17 @@ def _iter_inbox(cfg: Config):
         yield p
 
 
+def _move_no_clobber(src: Path, dest_dir: Path) -> Path:
+    """Move src into dest_dir, choosing a non-existing filename to avoid collisions."""
+    dest = dest_dir / src.name
+    i = 1
+    while dest.exists():
+        dest = dest_dir / f"{src.stem}_{i}{src.suffix}"
+        i += 1
+    shutil.move(str(src), str(dest))
+    return dest
+
+
 def ingest_once(cfg: Config, conn: sqlite3.Connection, *,
                 extractors: dict[str, Extractor]) -> IngestReport:
     report = IngestReport()
@@ -47,22 +58,27 @@ def ingest_once(cfg: Config, conn: sqlite3.Connection, *,
                 raise ValueError(f"Không có extractor cho loại '{ftype}'")
 
             text = extractor(path)
-            # Giữ bản gốc: chuyển sang _processed thay vì xóa (Phase 1B sẽ archive vào kb/sources).
-            # source_path ghi đích _processed để Phase 1B đọc đúng vị trí file sau khi move.
-            dest = cfg.processed_dir / path.name
+            # Bug fix #2 + #3: Move FIRST (collision-safe), then INSERT + commit using
+            # the actual final path. Move failure happens before any DB write → no phantom row.
+            dest = _move_no_clobber(path, cfg.processed_dir)
             conn.execute(
                 "INSERT INTO documents(content_hash, source_path, file_type, status, extracted_text) "
                 "VALUES (?,?,?,?,?)",
                 (content_hash, str(dest), ftype, "ingested", text),
             )
             conn.commit()
-            shutil.move(str(path), str(dest))
             report.ingested += 1
         except Exception as exc:  # cô lập lỗi: không chặn file khác
             report.failed += 1
             report.failed_files.append(path.name)
             print(f"[ingest] LỖI {path.name}: {exc}")
-            shutil.move(str(path), str(cfg.failed_dir / path.name))
+            # Bug fix #1 + #3: Wrap recovery move in its own try/except so a move
+            # failure (e.g. FileExistsError on Windows) logs and continues, never
+            # aborts the loop. Also uses _move_no_clobber for collision safety.
+            try:
+                _move_no_clobber(path, cfg.failed_dir)
+            except Exception as move_exc:
+                print(f"[ingest] Không thể move {path.name} vào _failed: {move_exc}")
     return report
 
 

@@ -49,3 +49,69 @@ def test_ingest_skips_duplicate_hash(tmp_path):
     report = ingest_once(cfg, conn, extractors=_extractors())
     assert report.skipped == 1
     assert report.ingested == 0
+
+
+def test_success_collision_two_runs_both_preserved(tmp_path):
+    """Two different files sharing the same name across two runs both succeed.
+
+    _processed must end with 2 files, and every documents.source_path must
+    point to an existing file (no phantom rows, no crash on Windows).
+    """
+    cfg = _cfg(tmp_path)
+    conn = connect(cfg.db_path)
+    init_db(conn)
+
+    # Run 1: a.txt with content "run1"
+    (cfg.inbox_dir / "a.txt").write_text("run1", encoding="utf-8")
+    report1 = ingest_once(cfg, conn, extractors=_extractors())
+    assert report1.ingested == 1
+    assert report1.failed == 0
+
+    # Run 2: different content (different hash → not deduped), same filename
+    (cfg.inbox_dir / "a.txt").write_text("run2", encoding="utf-8")
+    report2 = ingest_once(cfg, conn, extractors=_extractors())
+    assert report2.ingested == 1
+    assert report2.failed == 0
+
+    # Both files must be present in _processed (collision-safe rename)
+    processed_files = list(cfg.processed_dir.iterdir())
+    assert len(processed_files) == 2, (
+        f"Expected 2 files in _processed, got {[f.name for f in processed_files]}"
+    )
+
+    # Every source_path in the DB must point to an existing file (no phantom rows)
+    rows = conn.execute("SELECT source_path FROM documents").fetchall()
+    assert len(rows) == 2
+    for row in rows:
+        assert Path(row["source_path"]).exists(), (
+            f"Phantom row: {row['source_path']} does not exist"
+        )
+
+
+def test_failure_collision_two_runs_no_crash(tmp_path):
+    """Two different same-named files that both FAIL across two runs.
+
+    The second run must not crash, report.failed == 1 each run, and _failed
+    must end with 2 files (both preserved, collision-safe rename).
+    """
+    cfg = _cfg(tmp_path)
+    conn = connect(cfg.db_path)
+    init_db(conn)
+
+    # Run 1: b.png fails (image extractor raises)
+    (cfg.inbox_dir / "b.png").write_bytes(b"img1")
+    report1 = ingest_once(cfg, conn, extractors=_extractors())
+    assert report1.failed == 1
+    assert report1.failed_files == ["b.png"]
+
+    # Run 2: different content (different hash), same filename — must not crash
+    (cfg.inbox_dir / "b.png").write_bytes(b"img2")
+    report2 = ingest_once(cfg, conn, extractors=_extractors())
+    assert report2.failed == 1
+    assert report2.failed_files == ["b.png"]
+
+    # Both files must be present in _failed (collision-safe rename)
+    failed_files = list(cfg.failed_dir.iterdir())
+    assert len(failed_files) == 2, (
+        f"Expected 2 files in _failed, got {[f.name for f in failed_files]}"
+    )
