@@ -27,6 +27,7 @@ def test_register_handler_saves_student(tmp_path):
     asyncio.run(register_handler(update, ctx))
     assert get_student(conn, 111)["lop"] == 3
     sent.assert_awaited_once()
+    assert "3" in sent.await_args.args[0]  # xác nhận đúng lớp, không phải tin hướng dẫn
 
 
 def test_register_handler_rejects_bad_arg(tmp_path):
@@ -35,6 +36,7 @@ def test_register_handler_rejects_bad_arg(tmp_path):
     asyncio.run(register_handler(update, ctx))
     assert get_student(conn, 111) is None
     sent.assert_awaited_once()
+    assert "dangky" in sent.await_args.args[0].lower()  # đúng tin hướng dẫn cú pháp
 
 
 def test_question_handler_replies_with_answer(tmp_path):
