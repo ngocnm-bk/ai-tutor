@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import patch
 from ai_tutor.claude_client import ClaudeClient
 
 
@@ -31,3 +32,12 @@ def test_complete_smart_uses_smart_model():
     client.complete(system="s", user="u", smart=True, max_tokens=200)
     assert fake.messages.last_kwargs["model"] == "claude-sonnet-4-6"
     assert fake.messages.last_kwargs["max_tokens"] == 200
+
+
+def test_from_config_forwards_api_key():
+    cfg = SimpleNamespace(anthropic_api_key="secret")
+    with patch("anthropic.Anthropic") as MockAnthropic:
+        MockAnthropic.return_value = SimpleNamespace(messages=None)
+        client = ClaudeClient.from_config(cfg)
+    MockAnthropic.assert_called_once_with(api_key="secret")
+    assert isinstance(client, ClaudeClient)
