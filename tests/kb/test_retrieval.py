@@ -22,6 +22,12 @@ def test_tokens_normalizes_and_filters():
     assert "bang" in t and "nhan" in t and "6" in t
 
 
+def test_tokens_drops_single_letters_keeps_digits():
+    t = _tokens("a b 6 nhan")
+    assert "a" not in t and "b" not in t  # nhiễu 1 chữ cái bị loại
+    assert "6" in t and "nhan" in t       # chữ số đơn + từ ≥2 ký tự được giữ
+
+
 def test_finds_best_lesson_by_keyword(tmp_path):
     cfg = _cfg(tmp_path); conn = connect(cfg.db_path); init_db(conn)
     _add_lesson(conn, cfg, 3, "chuong-2", "bai-5", "Bảng nhân 6: 6x1=6, 6x2=12")
