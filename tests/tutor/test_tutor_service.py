@@ -10,9 +10,10 @@ def _cfg(tmp_path):
 
 
 class FakeClaude:
-    def __init__(self): self.calls = 0
+    def __init__(self): self.calls = 0; self.last_system = None
     def complete(self, system, user, *, smart=False, max_tokens=1024):
         self.calls += 1
+        self.last_system = system
         return "6 nhân 7 bằng 42 con nhé."
 
 
@@ -41,8 +42,9 @@ def test_no_relevant_lesson_fallback_no_claude(tmp_path):
     out = answer_question(conn, cfg, claude, 111, "Bi", "thì hiện tại đơn")
     assert out == NO_CONTEXT_REPLY
     assert claude.calls == 0  # tiết kiệm token
-    row = conn.execute("SELECT lesson_id FROM qa_log").fetchone()
+    row = conn.execute("SELECT lesson_id, answer FROM qa_log").fetchone()
     assert row is not None and row["lesson_id"] is None
+    assert row["answer"] == NO_CONTEXT_REPLY
 
 
 def test_answers_from_lesson_and_logs(tmp_path):
@@ -53,5 +55,9 @@ def test_answers_from_lesson_and_logs(tmp_path):
     out = answer_question(conn, cfg, claude, 111, "Bi", "6 nhân 7 bằng mấy trong bảng nhân 6")
     assert "42" in out
     assert claude.calls == 1
+    # grounding: system prompt là build_system_prompt(lop) — ràng buộc "chỉ dựa trên tài liệu"
+    from ai_tutor.tutor.prompts import build_system_prompt
+    assert claude.last_system == build_system_prompt(3)
     row = conn.execute("SELECT telegram_id, lesson_id, answer FROM qa_log").fetchone()
     assert row["telegram_id"] == 111 and row["lesson_id"] is not None
+    assert row["answer"] == out
