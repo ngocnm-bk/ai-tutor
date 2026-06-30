@@ -12,7 +12,9 @@ def _tokens(s: str) -> set[str]:
     s = (s or "").replace("đ", "d").replace("Đ", "D")
     s = unicodedata.normalize("NFKD", s)
     s = "".join(c for c in s if not unicodedata.combining(c)).lower()
-    return {t for t in re.split(r"[^a-z0-9]+", s) if len(t) > 0}
+    # Giữ token ≥2 ký tự HOẶC là chữ số (vd "6" trong "bảng nhân 6" có ý nghĩa);
+    # loại token 1 chữ cái (nhiễu).
+    return {t for t in re.split(r"[^a-z0-9]+", s) if len(t) >= 2 or t.isdigit()}
 
 
 def find_relevant_lesson(conn: sqlite3.Connection, cfg: Config, lop: int,
