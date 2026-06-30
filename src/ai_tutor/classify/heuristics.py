@@ -14,6 +14,8 @@ def _norm(s: str) -> str:
 
 
 def _detect_lop(n: str) -> int | None:
+    # Cố ý chỉ nhận lớp 3 và 6 (phạm vi dự án: 2 con lớp 3 & 6). Giới hạn [36]
+    # còn an toàn hơn \d+ vì tránh khớp nhầm số lớp khác xuất hiện trong câu.
     m = re.search(r"lop\s*([36])", n)
     return int(m.group(1)) if m else None
 
