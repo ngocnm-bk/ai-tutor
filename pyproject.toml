@@ -5,7 +5,7 @@ description = "AI Tutor cá nhân/gia đình (Telegram + Claude, local-first)"
 requires-python = ">=3.11"
 dependencies = [
     "python-telegram-bot>=21",
-    "anthropic>=0.40",
+    "openai>=1.40",
     "pypdf>=4",
     "python-docx>=1.1",
     "python-dotenv>=1",
