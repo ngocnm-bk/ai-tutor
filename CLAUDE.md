@@ -10,12 +10,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI Tutor cá nhân/gia đình cho 2 con (**lớp 3** và **lớp 6**, môn **Toán** + **Tiếng Anh**). Trả lời **chỉ dựa trên tài liệu của giáo viên** (RAG có ngữ cảnh), để nhất quán với cách dạy trên lớp. Tương tác qua **Telegram bot**.
 
-Nguyên tắc: **local-first, đơn giản, chỉ Claude tốn phí** — mọi xử lý khác chạy cục bộ trên máy Windows của người dùng.
+Nguyên tắc: **local-first, đơn giản, chỉ LLM (nhà cung cấp đã chọn) tốn phí** — mọi xử lý khác chạy cục bộ trên máy Windows của người dùng. LLM đa nhà cung cấp (mặc định Gemini) — xem mục "Mô hình LLM".
 
 ## ⚠️ Nguyên tắc tiết kiệm token (BẮT BUỘC — áp dụng khi viết MỌI code)
 
-1. **Ưu tiên Python, hạn chế gọi Claude.** Việc gì làm được bằng script Python thuần thì KHÔNG gọi Claude. Trước mỗi lần định gọi Claude, tự hỏi *"có làm được bằng Python không?"*. Làm bằng Python: đọc PDF/Word/text, transcribe (faster-whisper cục bộ), OCR chữ in cục bộ, băm/chống trùng, định tuyến file, ghép `lesson.md`, truy hồi từ khóa/vector cục bộ, lịch spaced repetition (SM-2), chấm đáp án cố định, tổng hợp số liệu báo cáo.
-2. **Khi buộc gọi Claude, tối ưu input/output:** chỉ gửi đoạn KB đã truy hồi (không gửi cả tài liệu) + cắt gọn boilerplate; **prompt caching** cho system prompt/ngữ cảnh lặp lại; **gộp batch** nhiều tài liệu ngắn/1 lần gọi; **Claude Haiku** cho việc đơn giản (phân loại, trích xuất), model lớn chỉ cho lập luận dạy; đặt `max_tokens` hợp lý + structured output để output ngắn.
+1. **Ưu tiên Python, hạn chế gọi LLM.** Việc gì làm được bằng script Python thuần thì KHÔNG gọi LLM. Trước mỗi lần định gọi LLM, tự hỏi *"có làm được bằng Python không?"*. Làm bằng Python: đọc PDF/Word/text, transcribe (faster-whisper cục bộ), OCR chữ in cục bộ, băm/chống trùng, định tuyến file, ghép `lesson.md`, truy hồi từ khóa/vector cục bộ, lịch spaced repetition (SM-2), chấm đáp án cố định, tổng hợp số liệu báo cáo.
+2. **Khi buộc gọi LLM, tối ưu input/output:** chỉ gửi đoạn KB đã truy hồi (không gửi cả tài liệu) + cắt gọn boilerplate; **gộp batch** nhiều tài liệu ngắn/1 lần gọi; **model rẻ** (`smart=False`) cho việc đơn giản (phân loại, trích xuất), model mạnh (`smart=True`) chỉ cho lập luận dạy; đặt `max_tokens` hợp lý + structured output (JSON mode) để output ngắn.
 
 Chi tiết: mục 1.1 trong tài liệu thiết kế.
 
@@ -69,15 +69,15 @@ pytest tests/test_ingest.py::test_pdf -q   # 1 test
 
 ## Thư viện chính
 
-`python-telegram-bot` · `anthropic` (Claude) · `faster-whisper` + ffmpeg · OCR cục bộ (Tesseract/PaddleOCR) · `pypdf` / `python-docx` · `sentence-transformers` + `chromadb` (Phase 2) · `sqlite3` (stdlib).
+`python-telegram-bot` · `openai` (SDK dùng chung cho mọi nhà cung cấp qua endpoint OpenAI-compatible) · `faster-whisper` + ffmpeg · OCR cục bộ (Tesseract/PaddleOCR) · `pypdf` / `python-docx` · `sentence-transformers` + `chromadb` (Phase 2) · `sqlite3` (stdlib).
 
 ## Cấu hình & bí mật
 
-`.env` (xem `.env.example`): `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`. Nạp qua `src/ai_tutor/config.py`. **Không commit `.env`.**
+`.env` (xem `.env.example`): `LLM_PROVIDER` (gemini|openai|grok|claude, mặc định **gemini**) + key của nhà đang dùng (`GEMINI_API_KEY`/`OPENAI_API_KEY`/`XAI_API_KEY`/`ANTHROPIC_API_KEY`), tùy chọn `LLM_CHEAP_MODEL`/`LLM_SMART_MODEL`/`LLM_BASE_URL`, và `TELEGRAM_BOT_TOKEN`. Nạp qua `src/ai_tutor/config.py` (+ registry `src/ai_tutor/providers.py`). **Không commit `.env`.**
 
-## Mô hình Claude
+## Mô hình LLM (đa nhà cung cấp)
 
-Gọi Claude **tối thiểu** (xem nguyên tắc tiết kiệm token ở trên). Chọn model theo độ khó: **Haiku** cho việc đơn giản (phân loại, trích xuất), model lớn mới nhất cho lập luận dạy học. Ảnh: **OCR cục bộ trước**, chỉ dùng **Claude vision** khi OCR kém (chữ viết tay/công thức). Phân loại dùng **structured output** + **gộp batch**. Dùng **prompt caching** cho phần lặp lại. Trong unit test, **mock Claude API** (không gọi mạng).
+Hệ thống hỗ trợ **nhiều nhà cung cấp** (Gemini mặc định, hoặc OpenAI/Grok/Claude) qua **một SDK `openai`** với `base_url` khác nhau — đổi nhà = đổi `LLM_PROVIDER` trong `.env`. Wrapper `src/ai_tutor/llm.py` (`LLMClient`) giữ interface `complete` / `complete_json` (JSON mode cho structured output) / `vision`. Gọi LLM **tối thiểu** (xem nguyên tắc tiết kiệm token). Chọn model theo độ khó: **model rẻ** (`smart=False`) cho việc đơn giản (phân loại, trích xuất), **model mạnh** (`smart=True`) cho lập luận dạy/tổng hợp. Ảnh: **OCR cục bộ trước**, chỉ dùng **vision** khi OCR kém. Trong unit test, **inject/mock LLMClient** (không gọi mạng). Chỉ LLM (nhà đã chọn) tốn phí.
 
 ## Quy ước test
 
@@ -85,7 +85,7 @@ Mỗi processor/classifier/retriever test riêng bằng dữ liệu mẫu nhỏ 
 
 ## Lộ trình (đang ở Phase 0)
 
-0. Khung repo, config, schema SQLite, client Claude, bot Telegram "echo".
+0. Khung repo, config, schema SQLite, client LLM, bot Telegram "echo".
 1. **MVP:** Ingest + Classify + **Synthesize (tổng hợp theo bài)** + KB markdown + Tutor trả lời theo bài (chưa vector). ← *mục tiêu chạy thật đầu tiên*
 2. RAG: embeddings + ChromaDB; tổng hợp **theo chủ đề** (sinh theo yêu cầu).
 3. Adaptive: spaced repetition + báo cáo phụ huynh.

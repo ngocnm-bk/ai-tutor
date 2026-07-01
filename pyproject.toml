@@ -1,7 +1,7 @@
 [project]
 name = "ai-tutor"
 version = "0.1.0"
-description = "AI Tutor cá nhân/gia đình (Telegram + Claude, local-first)"
+description = "AI Tutor cá nhân/gia đình (Telegram + LLM đa nhà cung cấp, local-first)"
 requires-python = ">=3.11"
 dependencies = [
     "python-telegram-bot>=21",
