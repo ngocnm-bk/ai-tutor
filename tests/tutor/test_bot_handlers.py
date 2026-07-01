@@ -8,7 +8,7 @@ from ai_tutor.tutor.students import get_student
 
 
 def _ctx(tmp_path, args=None, claude=None):
-    cfg = load_config(root=tmp_path, env={"ANTHROPIC_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
+    cfg = load_config(root=tmp_path, env={"GEMINI_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
     conn = connect(cfg.db_path); init_db(conn)
     return SimpleNamespace(args=args or [],
                            bot_data={"cfg": cfg, "conn": conn, "claude": claude}), cfg, conn

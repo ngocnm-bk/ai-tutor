@@ -4,7 +4,7 @@ from ai_tutor.kb.retrieval import find_relevant_lesson, _tokens
 
 
 def _cfg(tmp_path):
-    return load_config(root=tmp_path, env={"ANTHROPIC_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
+    return load_config(root=tmp_path, env={"GEMINI_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
 
 
 def _add_lesson(conn, cfg, lop, chuong, bai, body):

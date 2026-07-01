@@ -4,7 +4,7 @@ from ai_tutor.kb.build import build_kb
 
 
 def _cfg(tmp_path):
-    return load_config(root=tmp_path, env={"ANTHROPIC_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
+    return load_config(root=tmp_path, env={"GEMINI_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
 
 
 class FakeClaude:

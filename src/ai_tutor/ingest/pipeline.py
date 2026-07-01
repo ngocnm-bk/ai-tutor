@@ -82,26 +82,18 @@ def ingest_once(cfg: Config, conn: sqlite3.Connection, *,
     return report
 
 
-def build_default_extractors(claude) -> dict[str, Extractor]:
+def build_default_extractors(llm) -> dict[str, Extractor]:
     from ai_tutor.ingest.processors import (
         text_processor, pdf_processor, docx_processor,
         image_processor, video_processor,
     )
 
     def vision(p: Path) -> str:
-        # Token-saving: chỉ chạy khi OCR cục bộ kém (do image_processor quyết định).
-        import base64
-        data = base64.standard_b64encode(p.read_bytes()).decode()
+        # Token-saving: chỉ chạy khi OCR cục bộ kém (image_processor quyết định).
         media = "image/png" if p.suffix.lower() == ".png" else "image/jpeg"
-        resp = claude._client.messages.create(
-            model=claude._cheap_model, max_tokens=1024,
-            messages=[{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64",
-                 "media_type": media, "data": data}},
-                {"type": "text", "text": "Trích toàn bộ chữ/đề bài trong ảnh. Chỉ trả text."},
-            ]}],
-        )
-        return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+        return llm.vision(p.read_bytes(),
+                          "Trích toàn bộ chữ/đề bài trong ảnh. Chỉ trả text.",
+                          media_type=media)
 
     return {
         "text": text_processor.extract_text,

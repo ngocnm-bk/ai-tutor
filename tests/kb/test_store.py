@@ -5,7 +5,7 @@ from ai_tutor.kb.store import find_or_create_lesson, assign_document_to_lesson
 
 
 def _cfg(tmp_path):
-    return load_config(root=tmp_path, env={"ANTHROPIC_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
+    return load_config(root=tmp_path, env={"GEMINI_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
 
 
 def _c(ky=()):

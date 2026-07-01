@@ -7,7 +7,7 @@ from ai_tutor.synthesize.synthesizer import synthesize_lesson, compute_source_ha
 
 
 def _cfg(tmp_path):
-    return load_config(root=tmp_path, env={"ANTHROPIC_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
+    return load_config(root=tmp_path, env={"GEMINI_API_KEY": "k", "TELEGRAM_BOT_TOKEN": "t"})
 
 
 class FakeClaude:
