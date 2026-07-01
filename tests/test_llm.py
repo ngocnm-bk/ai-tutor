@@ -44,6 +44,13 @@ def test_complete_json_parses_json_mode():
     assert fake.chat.completions.last["response_format"] == {"type": "json_object"}
 
 
+def test_complete_json_returns_empty_dict_on_garbage():
+    # Provider trả rác không có JSON hợp lệ → luôn trả {} (không ném)
+    fake = FakeClient("xin lỗi tôi không biết")
+    c = LLMClient(fake, cheap_model="cheap", smart_model="smart")
+    assert c.complete_json("s", "u", tool_name="x", tool_schema={}) == {}
+
+
 def test_complete_json_lenient_on_extra_text():
     fake = FakeClient('Đây là kết quả: {"lop": 6, "mon": "tieng-anh"} .')
     c = LLMClient(fake, cheap_model="cheap", smart_model="smart")

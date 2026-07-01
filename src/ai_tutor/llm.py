@@ -63,8 +63,15 @@ class LLMClient:
 
 
 def _loads_lenient(text: str) -> dict:
+    """Parse JSON; luôn trả dict (không bao giờ ném) — trả {} nếu không parse được."""
     try:
         return json.loads(text)
     except Exception:
-        m = re.search(r"\{.*\}", text, re.S)
-        return json.loads(m.group(0)) if m else {}
+        pass
+    m = re.search(r"\{.*\}", text, re.S)
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except Exception:
+            pass
+    return {}
