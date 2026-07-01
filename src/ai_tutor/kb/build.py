@@ -26,11 +26,20 @@ def build_kb(cfg: Config, conn: sqlite3.Connection, claude) -> BuildReport:
         "ORDER BY id"
     ).fetchall()
     for doc in pending:
-        c = classify_document(doc["source_path"], doc["extracted_text"], claude)
-        lesson_id = find_or_create_lesson(conn, cfg, c)
-        assign_document_to_lesson(conn, doc["id"], lesson_id)
-        report.classified += 1
-        touched.add(lesson_id)
+        try:
+            c = classify_document(doc["source_path"], doc["extracted_text"], claude)
+            if c is None:
+                # Không đủ chắc để phân loại — bỏ qua, giữ status='ingested'
+                # để thử lại ở lượt sau, không tính vào classified.
+                continue
+            lesson_id = find_or_create_lesson(conn, cfg, c)
+            assign_document_to_lesson(conn, doc["id"], lesson_id)
+            report.classified += 1
+            touched.add(lesson_id)
+        except Exception as exc:
+            # Cô lập lỗi: một document hỏng không được làm sập cả lượt build.
+            print(f"[build_kb] LỖI phân loại doc {doc['id']}: {exc}")
+            continue
 
     report.lessons_touched = len(touched)
     for lesson_id in touched:

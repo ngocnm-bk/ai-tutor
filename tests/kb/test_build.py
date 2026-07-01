@@ -44,3 +44,31 @@ def test_build_kb_skips_already_classified(tmp_path):
     assert report2.classified == 0
     assert report2.lessons_touched == 0
     assert report2.synthesized == 0
+
+
+class FakeClaudeUnclassifiable(FakeClaude):
+    """complete_json trả {} (như _loads_lenient khi Claude output không parse
+    được) — mô phỏng trường hợp phân loại bằng Claude thất bại."""
+    def complete_json(self, **kw):
+        return {}
+
+
+def test_build_kb_skips_document_that_fails_classification(tmp_path):
+    cfg = _cfg(tmp_path); conn = connect(cfg.db_path); init_db(conn)
+    # doc1: heuristic lẫn Claude đều không phân loại được -> phải bị SKIP,
+    # không được làm sập build_kb, không tính vào classified.
+    _doc(conn, "h1", "ghichu.txt", "nội dung mơ hồ")
+    # doc2: heuristic đủ chắc -> vẫn phải được classify + synthesize bình thường
+    # dù doc1 thất bại trong cùng 1 lượt build.
+    _doc(conn, "h2", "toan-lop3.txt", "Chương 2 Bài 5 bảng nhân 6")
+
+    report = build_kb(cfg, conn, FakeClaudeUnclassifiable())
+
+    assert report.classified == 1
+    assert report.lessons_touched == 1
+    assert report.synthesized == 1
+
+    rows = conn.execute("SELECT source_path, status FROM documents ORDER BY source_path").fetchall()
+    statuses = {r["source_path"]: r["status"] for r in rows}
+    assert statuses["ghichu.txt"] == "ingested"  # bỏ qua, giữ nguyên để thử lại sau
+    assert statuses["toan-lop3.txt"] == "synthesized"

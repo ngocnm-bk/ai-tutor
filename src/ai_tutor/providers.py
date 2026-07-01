@@ -19,6 +19,10 @@ PROVIDERS: dict[str, ProviderSpec] = {
         None, "OPENAI_API_KEY", "gpt-4o-mini", "gpt-4o"),
     "grok": ProviderSpec(
         "https://api.x.ai/v1", "XAI_API_KEY", "grok-3-mini", "grok-3"),
+    # Thực nghiệm: qua endpoint tương thích OpenAI của Anthropic, một số tính
+    # năng có thể không hỗ trợ đầy đủ — response_format=json_object (classify)
+    # và image_url vision. Coi "claude" là experimental/text-first, không phải
+    # provider mặc định cho classify/vision.
     "claude": ProviderSpec(
         "https://api.anthropic.com/v1/", "ANTHROPIC_API_KEY",
         "claude-haiku-4-5-20251001", "claude-sonnet-4-6"),
